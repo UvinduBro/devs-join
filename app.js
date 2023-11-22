@@ -1,44 +1,55 @@
-// Replace with your Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyDTkxP0z0_HMeMnAzHTgSsZnTzP1IF4y0c",
-  authDomain: "devslk.firebaseapp.com",
-  projectId: "devslk",
-  storageBucket: "devslk.appspot.com",
-  messagingSenderId: "65076380686",
-  appId: "1:65076380686:web:a8c8af6cc6df90c123285f",
-  measurementId: "G-ND5VDGXYYD"
-};
+// Firebase authentication
+var auth = firebase.auth();
+var db = firebase.firestore();
 
-firebase.initializeApp(firebaseConfig);
+// GitHub sign-in function
+function signInWithGitHub() {
+  var provider = new firebase.auth.GithubAuthProvider();
 
-const database = firebase.database();
-
-async function signInWithGitHub() {
-  const provider = new firebase.auth.GithubAuthProvider();
-  provider.setCustomParameters({
-    client_id: 'e8dedc1e2e8dc901b462',
-  });
-
-  try {
-    const result = await firebase.auth().signInWithPopup(provider);
-    const user = result.user;
-
-    // Save user data and selected category to Firebase
-    saveUserData(user, document.getElementById('category').value);
-  } catch (error) {
-    console.error(error);
-  }
+  auth.signInWithPopup(provider)
+    .then(function(result) {
+      var user = result.user;
+      saveUserData(user);
+    })
+    .catch(function(error) {
+      console.error(error);
+    });
 }
 
-function saveUserData(user, category) {
-  const userData = {
-    uid: user.uid,
+// Sign out function
+function signOut() {
+  auth.signOut()
+    .then(function() {
+      console.log("Sign out successful");
+    })
+    .catch(function(error) {
+      console.error("Error signing out: ", error);
+    });
+}
+
+// Save user data to Firestore
+function saveUserData(user) {
+  db.collection('users').doc(user.uid).set({
     displayName: user.displayName,
     email: user.email,
     photoURL: user.photoURL,
-    category: category
-  };
-
-  // Save data to Firebase database
-  database.ref('users/' + user.uid).set(userData);
+    uid: user.uid,
+  })
+  .then(function() {
+    console.log("User data successfully written!");
+  })
+  .catch(function(error) {
+    console.error("Error writing user data: ", error);
+  });
 }
+
+// Listen for authentication state changes
+auth.onAuthStateChanged(function(user) {
+  if (user) {
+    // User is signed in
+    console.log("User is signed in:", user);
+  } else {
+    // User is signed out
+    console.log("User is signed out");
+  }
+});
